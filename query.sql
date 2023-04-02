@@ -29,12 +29,28 @@ foreign_key_relationships as (
 	WHERE tc.constraint_type = 'FOREIGN KEY'
 ),
 cols as (
-	select information_schema.columns.table_name, data_type, is_nullable = 'YES' as is_nullable, information_schema.columns.column_name, count(foreign_key_relationships.*) >= 1 as is_fk
-	, information_schema.columns.ordinal_position
-	from information_schema.columns
+	select pre_cols.*
+	    , count(foreign_key_relationships.*) >= 1 as is_fk
+	from (
+	    select cols_def.table_name
+	    , CASE
+	      WHEN data_type = 'USER-DEFINED' THEN
+	        CASE WHEN udt_schema = 'pg_catalog' THEN '' ELSE udt_schema || '.' END || udt_name
+	      WHEN data_type = 'ARRAY' THEN (
+	        SELECT quote_ident(format_type(a.atttypid, a.atttypmod)) -- d2 needs quotes here
+	          FROM pg_attribute a
+	         WHERE a.attrelid = (cols_def.table_schema||'.'||cols_def.table_name)::regclass
+	           AND attname=cols_def.column_name
+	      )
+	      ELSE data_type END as data_type
+	    , is_nullable = 'YES' as is_nullable
+	    , cols_def.column_name
+	    , cols_def.ordinal_position
+	    from information_schema.columns cols_def
+	) pre_cols
 	left join foreign_key_relationships
-	  on information_schema.columns.table_name = foreign_key_relationships.table_name and information_schema.columns.column_name = foreign_key_relationships.column_name
-	group by information_schema.columns.table_name, information_schema.columns.data_type, is_nullable, information_schema.columns.column_name, information_schema.columns.ordinal_position
+	  on pre_cols.table_name = foreign_key_relationships.table_name and pre_cols.column_name = foreign_key_relationships.column_name
+	group by pre_cols.table_name, data_type, is_nullable, pre_cols.column_name, ordinal_position
 )
 
 SELECT information_schema.columns.table_name, primary_keys.key_column as primary_key
