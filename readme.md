@@ -7,12 +7,12 @@
 ## Installation
 
 - Clone this repo
-- `npm install`
 
 ## Usage
 
 ```sh
-$ node index postgres://postgres:postgres@localhost:5432/yourdb
+$ DATABASE_URL=postgres://postgres:postgres@localhost:5432/yourdb go run . > output.d2
+$ d2 output.d2 out.svg
 ```
 
 You will see that there are 2 gitignored files generated, `out.svg` and `output.d2`.

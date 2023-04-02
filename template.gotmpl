@@ -1,0 +1,14 @@
+{{range .}}
+{{ .TableName }}: {
+  shape: sql_table
+  {{- $pk := .PrimaryKey }}
+  {{- range .Columns }}
+  {{ index . "column_name" }}: {{ index . "data_type" }}{{ if (index . "is_fk") }} {constraint: foreign_key}{{end}}{{ if ( eq (index . "column_name") $pk) }} {constraint: primary_key}{{- end}} 
+  {{- end}}
+}
+{{- if len (index .ForeignRelations 0) }}
+{{- range .ForeignRelations }}
+{{ index . "table_name" }}.{{ index . "column_name" }} -> {{ index . "foreign_table_name" }}.{{ index . "foreign_column_name" }}
+{{- end}}
+{{- end}}
+{{end}}
