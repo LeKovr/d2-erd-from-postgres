@@ -1,16 +1,15 @@
 with 
 primary_keys as (
-	select 
+	select
 	       kcu.table_name,
-	       kcu.column_name as key_column
+	       kcu.column_name
 	from information_schema.table_constraints tco
 	join information_schema.key_column_usage kcu 
 	     on kcu.constraint_name = tco.constraint_name
 	     and kcu.constraint_schema = tco.constraint_schema
 	     and kcu.constraint_name = tco.constraint_name
 	where tco.constraint_type = 'PRIMARY KEY'
-	order by kcu.table_schema,
-	         kcu.table_name
+	group by kcu.table_name, kcu.column_name
 ),
 foreign_key_relationships as (
 	SELECT
@@ -31,6 +30,7 @@ foreign_key_relationships as (
 cols as (
 	select pre_cols.*
 	    , count(foreign_key_relationships.*) >= 1 as is_fk
+	    , count(pk.*) >= 1 as is_pk
 	from (
 	    select cols_def.table_name
 	    , CASE
@@ -50,19 +50,19 @@ cols as (
 	) pre_cols
 	left join foreign_key_relationships
 	  on pre_cols.table_name = foreign_key_relationships.table_name and pre_cols.column_name = foreign_key_relationships.column_name
+	left join primary_keys pk
+	  on pre_cols.table_name = pk.table_name and pre_cols.column_name = pk.column_name
 	group by pre_cols.table_name, data_type, is_nullable, pre_cols.column_name, ordinal_position
 )
 
-SELECT information_schema.columns.table_name, primary_keys.key_column as primary_key
+SELECT information_schema.columns.table_name
 , json_agg(cols.* order by cols.ordinal_position) as columns, json_agg(distinct foreign_key_relationships) AS foreign_relations
 FROM information_schema.columns
 left join foreign_key_relationships
   on foreign_key_relationships.table_name = information_schema.columns.table_name
 left join cols
   on cols.table_name = information_schema.columns.table_name and cols.column_name = information_schema.columns.column_name
-join primary_keys
-  on primary_keys.table_name = information_schema.columns.table_name
 WHERE table_schema = $1
-GROUP BY information_schema.columns.table_name, primary_keys.key_column;
+GROUP BY information_schema.columns.table_name
 
 
