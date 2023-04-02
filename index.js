@@ -11,9 +11,10 @@ const args = process.argv.slice(2);
 async function getSchema() {
   const { Client } = pg;
   const client = new Client(args[0]);
+  const values = ['public'];
   await client.connect();
 
-  const res = await client.query(query);
+  const res = await client.query(query, values);
   await client.end();
 
   return res.rows.map((result) => ({

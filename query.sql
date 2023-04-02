@@ -62,7 +62,7 @@ left join cols
   on cols.table_name = information_schema.columns.table_name and cols.column_name = information_schema.columns.column_name
 join primary_keys
   on primary_keys.table_name = information_schema.columns.table_name
-WHERE table_schema = 'public'
+WHERE table_schema = $1
 GROUP BY information_schema.columns.table_name, primary_keys.key_column;
 
 
