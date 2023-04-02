@@ -3,7 +3,7 @@
   shape: sql_table
   {{- $pk := .PrimaryKey }}
   {{- range .Columns }}
-  {{ index . "column_name" }}: {{ index . "data_type" }}{{ if (index . "is_fk") }} {constraint: foreign_key}{{end}}{{ if ( index . "is_pk")}} {constraint: primary_key}{{- end}}
+  {{ index . "column_name" }}: {{ index . "data_type" }}{{ if (index . "is_pk") }} {constraint: primary_key}{{ else if ( index . "is_fk")}} {constraint: foreign_key}{{- end}}
   {{- end}}
 }
 {{- if len (index .ForeignRelations 0) }}
