@@ -30,18 +30,20 @@ foreign_key_relationships as (
 ),
 cols as (
 	select information_schema.columns.table_name, data_type, is_nullable = 'YES' as is_nullable, information_schema.columns.column_name, count(foreign_key_relationships.*) >= 1 as is_fk
+	, information_schema.columns.ordinal_position
 	from information_schema.columns
 	left join foreign_key_relationships
 	  on information_schema.columns.table_name = foreign_key_relationships.table_name and information_schema.columns.column_name = foreign_key_relationships.column_name
-	group by information_schema.columns.table_name, information_schema.columns.data_type, is_nullable, information_schema.columns.column_name
+	group by information_schema.columns.table_name, information_schema.columns.data_type, is_nullable, information_schema.columns.column_name, information_schema.columns.ordinal_position
 )
 
-SELECT information_schema.columns.table_name, primary_keys.key_column as primary_key, JSON_AGG(distinct cols) as columns, json_agg(distinct foreign_key_relationships) AS foreign_relations
+SELECT information_schema.columns.table_name, primary_keys.key_column as primary_key
+, json_agg(cols.* order by cols.ordinal_position) as columns, json_agg(distinct foreign_key_relationships) AS foreign_relations
 FROM information_schema.columns
 left join foreign_key_relationships
   on foreign_key_relationships.table_name = information_schema.columns.table_name
 left join cols
-  on cols.table_name = information_schema.columns.table_name
+  on cols.table_name = information_schema.columns.table_name and cols.column_name = information_schema.columns.column_name
 join primary_keys
   on primary_keys.table_name = information_schema.columns.table_name
 WHERE table_schema = 'public'
